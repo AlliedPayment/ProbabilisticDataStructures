@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package >
   <metadata>
-    <id>ProbabilisticDataStructures</id>
+    <id>ProbabilisticDataStructures.Redis</id>
     <version>1.0.0</version>
     <authors>David.Horner</authors>
     <owners>Matthew Lorimor</owners>
@@ -14,7 +14,7 @@
     <copyright>Copyright 2019</copyright>
     <tags>bloom</tags>
     <dependencies>
-      <dependency id="StackExchange.Redis" version="2.0.601" />
+      <package id="StackExchange.Redis.StrongName" version="1.2.6" targetFramework="net45" />
     </dependencies>
   </metadata>
 </package>

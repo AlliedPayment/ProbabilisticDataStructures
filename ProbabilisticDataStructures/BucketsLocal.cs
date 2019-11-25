@@ -1,22 +1,13 @@
-﻿using System;
-using System.Collections;
-using System.ComponentModel;
-using System.Diagnostics;
-using BloomFilter.Redis;
-using StackExchange.Redis;
-
-namespace ProbabilisticDataStructures
+﻿namespace ProbabilisticDataStructures
 {
     /// <summary>
     /// Buckets is a fast, space-efficient array of buckets where each bucket can store
     /// up to a configured maximum value.
     /// </summary>
-    public class BucketsRedis
+    public class BucketsLocal
     {
+        private byte[] Data { get; set; }
         private byte bucketSize { get; set; }
-        private RedisBitOperate _redis;
-        public string _redisKey;
-        internal uint count { get; set; }
         private byte _max;
         private int Max
         {
@@ -33,8 +24,9 @@ namespace ProbabilisticDataStructures
                     _max = byte.MaxValue;
                 else
                     _max = (byte)value;
-            }
+            } 
         }
+        internal uint count { get; set; }
 
         /// <summary>
         /// Creates a new Buckets with the provided number of buckets where each bucket
@@ -42,15 +34,12 @@ namespace ProbabilisticDataStructures
         /// </summary>
         /// <param name="count">Number of buckets.</param>
         /// <param name="bucketSize">Number of bits per bucket.</param>
-        /// <param name="connectString">Redis connection string</param>
-        internal BucketsRedis(uint count, byte bucketSize, string connectString= "localhost", string redisKey = "")
+        internal BucketsLocal(uint count, byte bucketSize)
         {
-            var config=ConfigurationOptions.Parse(connectString);
             this.count = count;
+            this.Data = new byte[(count * bucketSize + 7) / 8];
             this.bucketSize = bucketSize;
             this.Max = (1 << bucketSize) - 1;
-            this._redis = new RedisBitOperate(config);
-            this._redisKey = redisKey;
         }
 
         /// <summary>
@@ -59,7 +48,7 @@ namespace ProbabilisticDataStructures
         /// <returns>The bucket max value.</returns>
         internal byte MaxBucketValue()
         {
-        	return this._max;
+            return this._max;
         }
 
         /// <summary>
@@ -73,10 +62,16 @@ namespace ProbabilisticDataStructures
         /// <param name="bucket">The bucket to increment.</param>
         /// <param name="delta">The amount to increment the bucket by.</param>
         /// <returns>The modified bucket.</returns>
-        internal BucketsRedis Increment(uint bucket, int delta)
+        internal BucketsLocal Increment(uint bucket, int delta)
         {
-            var t= (uint)bucket * this.bucketSize;
-            this._redis.IncrBitField(this._redisKey, this.bucketSize,t , delta);
+            int val = (int)(GetBits(bucket * this.bucketSize, this.bucketSize) + delta);
+
+            if (val > this.Max)
+                val = this.Max;
+            else if (val < 0)
+                val = 0;
+
+            SetBits((uint)bucket * (uint)this.bucketSize, this.bucketSize, (uint)val);
             return this;
         }
 
@@ -87,11 +82,12 @@ namespace ProbabilisticDataStructures
         /// <param name="bucket">The bucket to change the value of.</param>
         /// <param name="value">The value to set.</param>
         /// <returns>The modified bucket.</returns>
-        internal BucketsRedis Set(uint bucket, byte value)
+        internal BucketsLocal Set(uint bucket, byte value)
         {
             if (value > this._max)
                 value = this._max;
-            SetBits(bucket, bucketSize, value);
+
+            SetBits(bucket * this.bucketSize, this.bucketSize, value);
             return this;
         }
 
@@ -100,9 +96,9 @@ namespace ProbabilisticDataStructures
         /// </summary>
         /// <param name="bucket">The bucket to get.</param>
         /// <returns>The specified bucket.</returns>
-        internal int Get(uint bucket)
+        internal uint Get(uint bucket)
         {
-            return (int)this._redis.GetBitField(this._redisKey, this.bucketSize, bucket);
+            return GetBits(bucket * this.bucketSize, this.bucketSize);
         }
 
         /// <summary>
@@ -110,12 +106,11 @@ namespace ProbabilisticDataStructures
         /// chaining.
         /// </summary>
         /// <returns>The Buckets object the reset operation was performed on.</returns>
-        internal BucketsRedis Reset()
+        internal BucketsLocal Reset()
         {
-            this._redis.Clear(this._redisKey);
+            this.Data = new byte[(this.count * this.bucketSize + 7) / 8];
             return this;
         }
-
 
         /// <summary>
         /// Returns the bits at the specified offset and length.
@@ -123,9 +118,20 @@ namespace ProbabilisticDataStructures
         /// <param name="offset">The position to start reading at.</param>
         /// <param name="length">The distance to read from the offset.</param>
         /// <returns>The bits at the specified offset and length.</returns>
-        internal RedisResult GetBits(uint offset, uint length)
+        internal uint GetBits(uint offset, int length)
         {
-            return this._redis.GetBitField(this._redisKey, length, offset);
+            uint byteIndex = offset / 8;
+            int byteOffset = (int)(offset % 8);
+
+            if ((byteOffset + length) > 8)
+            {
+                int rem = 8 - byteOffset;
+                return GetBits(offset, rem)
+                    | (GetBits((uint)(offset + rem), length - rem) << rem);
+            }
+
+            int bitMask = (1 << length) - 1;
+            return (uint)((this.Data[byteIndex] & (bitMask << byteOffset)) >> byteOffset);
         }
 
         /// <summary>
@@ -134,9 +140,24 @@ namespace ProbabilisticDataStructures
         /// <param name="offset">The position to start writing at.</param>
         /// <param name="length">The distance to write from the offset.</param>
         /// <param name="bits">The bits to write.</param>
-        internal RedisResult SetBits(uint offset, uint length, byte bits)
+        internal void SetBits(uint offset, int length, uint bits)
         {
-            return this._redis.SetBitField(this._redisKey, this.bucketSize, offset,bits);
+            uint byteIndex = offset / 8;
+            int byteOffset = (int)(offset % 8);
+
+            if ((byteOffset + length) > 8)
+            {
+                int rem = 8 - byteOffset;
+                SetBits(offset, (byte)rem, bits);
+                SetBits((uint)(offset + rem), length - rem, bits >> rem);
+                return;
+            }
+
+            int bitMask = (1 << length) - 1;
+            this.Data[byteIndex] =
+                (byte)((this.Data[byteIndex]) & ~(bitMask << byteOffset));
+            this.Data[byteIndex] =
+                (byte)((this.Data[byteIndex]) | ((bits & bitMask) << byteOffset));
         }
     }
 }

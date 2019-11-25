@@ -33,7 +33,7 @@ namespace ProbabilisticDataStructures
         /// <summary>
         /// Filter data
         /// </summary>
-        internal BucketsRedis cells { get; set; }
+        internal Buckets cells { get; set; }
         /// <summary>
         /// Hash algorightm
         /// </summary>
@@ -74,7 +74,7 @@ namespace ProbabilisticDataStructures
         /// <param name="m">Number of cells to decrement</param>
         /// <param name="d">Bits per cell</param>
         /// <param name="fpRate">Desired false-positive rate</param>
-        public StableBloomFilter(uint m, byte d, double fpRate)
+        public StableBloomFilter(uint m, byte d, double fpRate, string connectString = "localhost", string redisKey = "Buckets")
         {
             var k = Utils.OptimalK(fpRate) / 2;
             if (k > m)
@@ -86,7 +86,7 @@ namespace ProbabilisticDataStructures
                 k = 1;
             }
 
-            var cells = new BucketsRedis(m, d);
+            var cells = new Buckets(m, d,  connectString , redisKey);
 
             this.Hash = Defaults.GetDefaultHashAlgorithm();
             this.M = m;
@@ -120,7 +120,7 @@ namespace ProbabilisticDataStructures
         /// <returns></returns>
         public static StableBloomFilter NewUnstableBloomFilter(uint m, double fpRate)
         {
-            var cells = new BucketsRedis(m, 1);
+            var cells = new Buckets(m, 1);
             var k = Utils.OptimalK(fpRate);
 
             return new StableBloomFilter
