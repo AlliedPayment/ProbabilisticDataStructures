@@ -33,7 +33,7 @@ namespace ProbabilisticDataStructures
         /// <summary>
         /// Filter data
         /// </summary>
-        internal Buckets cells { get; set; }
+        internal BucketsRedis cells { get; set; }
         /// <summary>
         /// Hash algorightm
         /// </summary>
@@ -86,7 +86,7 @@ namespace ProbabilisticDataStructures
                 k = 1;
             }
 
-            var cells = new Buckets(m, d);
+            var cells = new BucketsRedis(m, d);
 
             this.Hash = Defaults.GetDefaultHashAlgorithm();
             this.M = m;
@@ -120,7 +120,7 @@ namespace ProbabilisticDataStructures
         /// <returns></returns>
         public static StableBloomFilter NewUnstableBloomFilter(uint m, double fpRate)
         {
-            var cells = new Buckets(m, 1);
+            var cells = new BucketsRedis(m, 1);
             var k = Utils.OptimalK(fpRate);
 
             return new StableBloomFilter

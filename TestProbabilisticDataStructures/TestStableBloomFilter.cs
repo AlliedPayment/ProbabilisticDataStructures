@@ -13,6 +13,94 @@ namespace TestProbabilisticDataStructures
         private static byte[] C_BYTES = Encoding.ASCII.GetBytes("c");
         private static byte[] X_BYTES = Encoding.ASCII.GetBytes("x");
 
+        [TestMethod]
+        static public void TestRedisStableFilter()
+        {
+            var f = new StableBloomFilter(100, 1, 0.1);
+            f.Reset();
+
+            // 'a' is not in the filter.
+            if (f.Test(A_BYTES))
+            {
+                Assert.Fail("'a' should not be a member");
+            }
+
+            var addedF = f.Add(A_BYTES);
+            Assert.AreSame(f, addedF, "Returned StableBloomFilter should be the same instance");
+
+            // 'a' is now in the filter.
+            if (!f.Test(A_BYTES))
+            {
+                Assert.Fail("'a' should be a member");
+            }
+
+            // 'a' is still in the filter.
+            if (!f.TestAndAdd(A_BYTES))
+            {
+                Assert.Fail("'a' should be a member");
+            }
+
+            // 'b' is not in the filter.
+            if (f.TestAndAdd(B_BYTES))
+            {
+                Assert.Fail("'b' should not be a member");
+            }
+
+            // 'a' is still in the filter.
+            if (!f.Test(A_BYTES))
+            {
+                Assert.Fail("'a' should be a member");
+            }
+
+            // 'b' is now in the filter.
+            if (!f.Test(B_BYTES))
+            {
+                Assert.Fail("'b' should be a member");
+            }
+
+            // 'c' is not in the filter.
+            if (f.Test(C_BYTES))
+            {
+                Assert.Fail("'c' should not be a member");
+            }
+
+            for (int i = 0; i < 1000; i++)
+            {
+                f.TestAndAdd(Encoding.ASCII.GetBytes(i.ToString()));
+            }
+
+            // 'a' should have been evicted
+            if (f.Test(A_BYTES))
+            {
+                Assert.Fail("'a' should not be a member");
+            }
+
+
+            for (int i = 0; i < 10; i++)
+            {
+                bool ret=f.TestAndAdd(Encoding.ASCII.GetBytes(i.ToString()));
+                bool r = f.TestAndAdd(Encoding.ASCII.GetBytes(i.ToString()));
+            }
+
+            for (uint i = 0; i < f.M; i++)
+            {
+                var cell = f.cells.Get(i);
+            }
+
+            var resetF = f.Reset();
+            Assert.AreSame(f, resetF, "Returned StableBloomFilter should be the same instance");
+
+            for (uint i = 0; i < f.M; i++)
+            {
+                var cell = f.cells.Get(i);
+                if (cell != 0)
+                {
+                    Assert.Fail(string.Format("Expected zero cell, got {0}", cell));
+                }
+            }
+
+        }
+
         /// <summary>
         /// Ensures that NewUnstableBloomFilter creates a Stable Bloom Filter with p=0,
         /// max=1 and k hash functions.
@@ -20,13 +108,87 @@ namespace TestProbabilisticDataStructures
         [TestMethod]
         public void TestNewUnstableBloomFilter()
         {
-            var f = StableBloomFilter.NewUnstableBloomFilter(100, 0.1);
+            var f = StableBloomFilter.NewUnstableBloomFilter(10, 0.1);
             var k = ProbabilisticDataStructures.Utils.OptimalK(0.1);
 
             Assert.AreEqual(k, f.K());
-            Assert.AreEqual(100u, f.M);
+            Assert.AreEqual(10u, f.M);
             Assert.AreEqual(0u, f.P());
             Assert.AreEqual(1u, f.Max);
+            f.Reset();
+
+
+            // 'a' is not in the filter.
+            if (f.Test(A_BYTES))
+            {
+                Assert.Fail("'a' should not be a member");
+            }
+
+            var addedF = f.Add(A_BYTES);
+            Assert.AreSame(f, addedF, "Returned StableBloomFilter should be the same instance");
+
+            // 'a' is now in the filter.
+            if (!f.Test(A_BYTES))
+            {
+                Assert.Fail("'a' should be a member");
+            }
+
+            // 'a' is still in the filter.
+            if (!f.TestAndAdd(A_BYTES))
+            {
+                Assert.Fail("'a' should be a member");
+            }
+
+            // 'b' is not in the filter.
+            if (f.TestAndAdd(B_BYTES))
+            {
+                Assert.Fail("'b' should not be a member");
+            }
+
+            // 'a' is still in the filter.
+            if (!f.Test(A_BYTES))
+            {
+                Assert.Fail("'a' should be a member");
+            }
+
+            // 'b' is now in the filter.
+            if (!f.Test(B_BYTES))
+            {
+                Assert.Fail("'b' should be a member");
+            }
+
+            // 'c' is not in the filter.
+            if (f.Test(C_BYTES))
+            {
+                Assert.Fail("'c' should not be a member");
+            }
+
+            for (int i = 0; i < 1000; i++)
+            {
+                f.TestAndAdd(Encoding.ASCII.GetBytes(i.ToString()));
+            }
+
+            // 'a' should have NOT been evicted (we are testing unstable!)
+            if (!f.Test(A_BYTES))
+            {
+                Assert.Fail("'a' should be a member");
+            }
+
+
+            for (int i = 0; i < 10; i++)
+            {
+                bool ret = f.TestAndAdd(Encoding.ASCII.GetBytes(i.ToString()));
+                bool r = f.TestAndAdd(Encoding.ASCII.GetBytes(i.ToString()));
+            }
+
+            for (uint i = 0; i < f.M; i++)
+            {
+                var cell = f.cells.Get(i);
+            }
+
+            var resetF = f.Reset();
+            Assert.AreSame(f, resetF, "Returned StableBloomFilter should be the same instance");
+
         }
 
         /// <summary>
@@ -60,6 +222,7 @@ namespace TestProbabilisticDataStructures
         public void TestStableTestAndAdd()
         {
             var f = StableBloomFilter.NewDefaultStableBloomFilter(10000, 0.01);
+            f.Reset();
 
             // 'a' is not in the filter.
             if (f.Test(A_BYTES))

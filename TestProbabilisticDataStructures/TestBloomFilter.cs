@@ -18,7 +18,7 @@ namespace TestProbabilisticDataStructures
         [TestMethod]
         public void TestBloomCapacity()
         {
-            var f = new BloomFilter(100, 0.1);
+            var f = new ProbabilisticDataStructures.BloomFilter(100, 0.1);
             var capacity = f.Capacity();
 
             Assert.AreEqual(480u, capacity);
@@ -30,7 +30,7 @@ namespace TestProbabilisticDataStructures
         [TestMethod]
         public void TestBloomK()
         {
-            var f = new BloomFilter(100, 0.1);
+            var f = new ProbabilisticDataStructures.BloomFilter(100, 0.1);
             var k = f.K();
 
             Assert.AreEqual(4u, k);
@@ -42,7 +42,7 @@ namespace TestProbabilisticDataStructures
         [TestMethod]
         public void TestBloomCount()
         {
-            var f = new BloomFilter(100, 0.1);
+            var f = new ProbabilisticDataStructures.BloomFilter(100, 0.1);
             for (uint i = 0; i < 10; i++)
             {
                 f.Add(Encoding.ASCII.GetBytes(i.ToString()));
@@ -58,7 +58,7 @@ namespace TestProbabilisticDataStructures
         [TestMethod]
         public void TestBloomEstimatedFillRatio()
         {
-            var f = new BloomFilter(100, 0.5);
+            var f = new ProbabilisticDataStructures.BloomFilter(100, 0.5);
             for (uint i = 0; i < 100; i++)
             {
                 f.Add(Encoding.ASCII.GetBytes(i.ToString()));
@@ -77,7 +77,7 @@ namespace TestProbabilisticDataStructures
         [TestMethod]
         public void TestBloomFillRatio()
         {
-            var f = new BloomFilter(100, 0.1);
+            var f = new ProbabilisticDataStructures.BloomFilter(100, 0.1);
             f.Add(A_BYTES);
             f.Add(B_BYTES);
             f.Add(C_BYTES);
@@ -92,7 +92,7 @@ namespace TestProbabilisticDataStructures
         [TestMethod]
         public void TestBloomTestAndAdd()
         {
-            var f = new BloomFilter(100, 0.01);
+            var f = new ProbabilisticDataStructures.BloomFilter(100, 0.01);
 
             // 'a' is not in the filter.
             if (f.Test(A_BYTES))
@@ -157,7 +157,7 @@ namespace TestProbabilisticDataStructures
         [TestMethod]
         public void TestBloomReset()
         {
-            var f = new BloomFilter(100, 0.1);
+            var f = new ProbabilisticDataStructures.BloomFilter(100, 0.1);
             for (int i = 0; i < 1000; i++)
             {
                 f.Add(Encoding.ASCII.GetBytes(i.ToString()));
@@ -179,7 +179,7 @@ namespace TestProbabilisticDataStructures
     [TestClass]
     public class BenchmarkBloomFilter
     {
-        private BloomFilter f;
+        private ProbabilisticDataStructures.BloomFilter f;
         private int n;
         private byte[][] data;
 
@@ -187,7 +187,7 @@ namespace TestProbabilisticDataStructures
         public void Testinitialize()
         {
             n = 100000;
-            f = new BloomFilter(100000, 0.1);
+            f = new ProbabilisticDataStructures.BloomFilter(100000, 0.1);
             data = new byte[n][];
             for (int i = 0; i < n; i++)
             {
