@@ -73,7 +73,7 @@ namespace BloomFilter.Redis
                 else if (delta > 1)
                     delta = 1;
             }
-            object[] args = new object[] { redisKey, "INCRBY", string.Format("u{0}", bitLength), offset, delta };
+            object[] args = new object[] { redisKey, "INCRBY", string.Format("u{0}", bitLength), string.Format("{0}", offset), delta };
             return Database().Execute("BITFIELD", args);
         }
 
